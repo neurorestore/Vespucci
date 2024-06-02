@@ -89,7 +89,7 @@ Vespucci can also be run on 3D coordinates by specifying the 3D coordinates.
 > vespucci_res = run_vespucci(input, meta, coord_cols = c('x', 'y', 'z'))
 ```
 
-In the event that you have generated the distance metrics data frame prior to running \code{run_vespucci}, you can specify it as an argument to avoid re-calculating the distance metrics (which takes roughly 6-7 hours for 10,000 barcodes).
+In the event that you have generated the distance metrics data frame prior to running `run_vespucci`, you can specify it as an argument to avoid re-calculating the distance metrics (which takes roughly 6-7 hours for 10,000 barcodes).
 
 ```r
 > vespucci_res = run_vespucci(input, meta, distance_metrics_df = precalculated_distance_metrics_df)
