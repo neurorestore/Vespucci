@@ -59,7 +59,8 @@ This should take no more than a few minutes.
 
 ## Usage
 
-To derive the spatial AUC, run the `calculate_spatial_auc` function which takes as input a preprocessed features-by-cells (e.g., genes-by-cells) matrix, and a data frame containing metadata associated with each cell, minimally including the spatial coordinates, experimental labels, biological replicates and barcodes.
+To run Vespucci, use the `run_vespucci` function which takes as input a preprocessed features-by-cells (e.g., genes-by-cells) matrix, and a data frame containing metadata associated with each cell, minimally including the spatial coordinates, experimental labels, biological replicates and barcodes.
+
 This means that in order to use Vespucci, you should have pre-processed your data (e.g., by read alignment and batch-effect removal) across all experimental labels. 
 Furthermore, Vespucci requires the spatial transcriptomics dataset to be registered onto the a common coordinate framework. This can be done via various spatial registration pacakages, for example `RNiftyReg`. 
 
