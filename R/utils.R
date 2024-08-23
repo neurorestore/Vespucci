@@ -261,17 +261,17 @@ get_GO_matrix = function(
 #'
 #' @export
 countsplit_matrix = function(
-        input,
-        seed = 42
+    input,
+    seed = 42
 ) {
-    set.seed(seed)
-    split = countsplit(input, epsilon=0.5)
-    auc = split$train
-    auc@x = as.numeric(auc@x)
-    de = split$test
-    out_list = list(
-        'run_auc' = auc,
-        'run_de' = de
-    )
-    return(out_list)
+  set.seed(seed)
+  split = countsplit(input, epsilon=0.5)
+  auc = split[[1]]
+  auc@x = as.numeric(auc@x)
+  de = split[[2]]
+  out_list = list(
+    'run_auc' = auc,
+    'run_de' = de
+  )
+  return(out_list)
 }
