@@ -266,9 +266,9 @@ countsplit_matrix = function(
 ) {
     set.seed(seed)
     split = countsplit(input, epsilon=0.5)
-    auc = split$train
+    auc = split[[1]]
     auc@x = as.numeric(auc@x)
-    de = split$test
+    de = split[[2]]
     out_list = list(
         'run_auc' = auc,
         'run_de' = de
