@@ -25,6 +25,7 @@
 #' @param min_cor minimum correlation before assumption of convergence; defaults to \code{0.8}
 #' @param seed seed for pseudorandom sampling; defaults to \code{42}
 #' @param ncores number of cores to use, mainly for \code{Augur}; defaults to \code{8}
+#' @param save_feature_importance boolean to save feature importance per AUC calculated; defaults to false
 #' @param test_sim set to true only if testing Vespucci; load pre-loaded calculated_auc_df for spatial_sim data; defaults to false
 #'
 #' @return a list containing the following elements:
@@ -41,6 +42,7 @@
 #'          \item \code{aucs}: time taken for \link{calculate_auc} for each barcode
 #'          \item \code{cor_convergence}: time taken for building model and predicting AUCs for each convergence step
 #'      }
+#'   \item \code{feature_importance}: only if save_feature_importance is TRUE -- refer to https://github.com/neurorestore/Augur/blob/master/R/calculate_auc.R output
 #' }
 #'
 #' @importFrom dplyr do sample_n group_by ungroup tibble mutate select bind_rows pull rename n_distinct arrange desc filter summarise row_number left_join n all_of
@@ -77,13 +79,18 @@ calculate_spatial_auc = function(
 	min_cor = 0.8,
 	seed = 42,
 	ncores = 8,
+	save_feature_importance = F,
 	test_sim = F,
 	...
 ) {
 
 	# set seed
 	set.seed(seed)
-
+    
+    # add a catch where max_barcodes >= barcodes per step
+    if (max_barcodes < barcodes_per_step) {
+        stop('Please set max barcodes >= barcodes per step')
+    }
 	barcodes = colnames(input)
 
 	# check if nn is set
@@ -154,6 +161,7 @@ calculate_spatial_auc = function(
 	}
 
 	calculated_auc_df = data.frame()
+	feature_importance_df = data.frame()
 
 	while (curr_barcode_size < (max_barcodes + 1) & !converged) {
 		
@@ -172,7 +180,7 @@ calculate_spatial_auc = function(
 
 				barcodes_keep = barcodes_nn$target_barcode
 				target_groups_n = as.numeric(table(barcodes_nn$target_label))
-
+                
 				# check if min cell counts for each group is > 20
 				check = length(target_groups_n) == 2 & all(target_groups_n > 20)
 
@@ -191,10 +199,21 @@ calculate_spatial_auc = function(
 					end_time = Sys.time()
 					time_taken = difftime(end_time, start_time, units='secs')
 					out_row = data.frame('barcode'=curr_barcode, 'auc' = as.numeric(augur_res$AUC$auc), 'time' = as.numeric(time_taken))
+					if (save_feature_importance) {
+					    out_feature_importance = augur_res$feature_importance %>% 
+					        group_by_at(vars(-fold, -importance)) %>% # find mean importance across folds
+					        summarise(mean_importance = mean(importance)) %>% 
+					        ungroup() %>%
+					        filter(mean_importance != 0) %>% # most importance values are 0 - store non-zero values
+					        mutate(barcode = curr_barcode)
+					}
 				} else {
 					out_row = data.frame('barcode'=curr_barcode, 'auc' = NA, 'time' = NA)
 				}
 				calculated_auc_df %<>% rbind(out_row)
+				if (save_feature_importance) {
+				    feature_importance_df %<>% rbind(out_feature_importance)
+				}
 			}   
 		} else {
 			calculated_auc_df %<>% rbind(
@@ -299,7 +318,7 @@ calculate_spatial_auc = function(
 		'cor_convergence' = cor_tracking %>% dplyr::select(step, model_time, predict_time)
 	)
 
-	return (list(
+	out_list = list(
 		'calculated_auc_df' = calculated_auc_df,
 		'distance_metrics_df' = distance_metrics_df,
 		'aucs' = auc_tracking[,c('barcode', curr_step)] %>%
@@ -307,5 +326,7 @@ calculate_spatial_auc = function(
 		'auc_tracking' = auc_tracking,
 		'cor_tracking' = cor_tracking %>% dplyr::select(step, cor_method, cor),
 		'time_tracking' = time_tracking
-	))
+	)
+	if (save_feature_importance) out_list[['feature_importance']] = feature_importance_df
+	return(out_list)
 }

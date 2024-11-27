@@ -23,6 +23,7 @@ calculate_spatial_auc(
   min_cor = 0.8,
   seed = 42,
   ncores = 8,
+  save_feature_importance = F,
   test_sim = F,
   ...
 )
@@ -69,6 +70,8 @@ contains barcode; defaults to \code{barcode}}
 
 \item{ncores}{number of cores to use, mainly for \code{Augur}; defaults to \code{8}}
 
+\item{save_feature_importance}{boolean to save feature importance per AUC calculated; defaults to false}
+
 \item{test_sim}{set to true only if testing Vespucci; load pre-loaded calculated_auc_df for spatial_sim data; defaults to false}
 }
 \value{
@@ -86,6 +89,7 @@ a list containing the following elements:
          \item \code{aucs}: time taken for \link{calculate_auc} for each barcode
          \item \code{cor_convergence}: time taken for building model and predicting AUCs for each convergence step
      }
+  \item \code{feature_importance}: only if save_feature_importance is TRUE -- refer to https://github.com/neurorestore/Augur/blob/master/R/calculate_auc.R output
 }
 }
 \description{

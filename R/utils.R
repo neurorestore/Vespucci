@@ -265,7 +265,7 @@ countsplit_matrix = function(
         seed = 42
 ) {
     set.seed(seed)
-    split = countsplit(input, epsilon=0.5)
+    split = countsplit(input, folds=2)
     auc = split[[1]]
     auc@x = as.numeric(auc@x)
     de = split[[2]]
