@@ -79,11 +79,11 @@ find_spatial_de = function(
         df = model.matrix(~label, data=meta)
         data_g = group_cell(count=input,id=meta$replicate,pred=df)
         if (!is.null(data_g)){
-            expr0 = data_g$count
+            input = data_g$count
             id = data_g$id
             pred = data_g$pred
         } else {
-            id = meta0$replicate
+            id = meta$replicate
             pred = df
         }
         res = nebula(
