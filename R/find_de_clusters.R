@@ -1,6 +1,6 @@
 #' Spatially relevant differential gene/GO term analysis
 #'
-#' Find differentially expressed genes/GO terms that corresponds to AUC derived from \code{navigate_space} function. This is calculated by fitting either a negative binomial generalized mixed model or a generalized linear mixed model  of the expression values to the AUC values while accounting for biological replicates.
+#' Find clusters based on gene expression and DE genes
 #'
 #' @param input a matrix containing gene expression values
 #'   (genes in rows, cells in columns); columns matching the barcodes in meta
@@ -31,7 +31,7 @@
 #' @import matrix
 #'
 #' @export
-find_spatial_clusters = function(
+find_de_clusters = function(
     input,
     meta,
     ves_res=NULL,
