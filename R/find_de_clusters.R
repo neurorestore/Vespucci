@@ -28,7 +28,7 @@
 #' @importFrom stats setNames predict sd kmeans
 #' @importFrom methods is
 #' @importFrom tidyr gather
-#' @import matrix
+#' @import Matrix
 #'
 #' @export
 find_de_clusters = function(

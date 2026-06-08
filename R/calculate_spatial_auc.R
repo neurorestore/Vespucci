@@ -57,6 +57,7 @@
 #' @importFrom RANN nn2
 #' @importFrom tidyr gather
 #' @importFrom randomForest randomForest
+#' @importFrom purrr map
 #' @import Matrix
 #'
 #' @export
@@ -81,7 +82,9 @@ calculate_spatial_auc = function(
 	ncores = 8,
 	save_feature_importance = F,
 	test_sim = F,
-	...
+	nn_args = list(),
+    select_var_args = list(),
+    augur_args = list()
 ) {
 
 	# set seed
@@ -97,13 +100,12 @@ calculate_spatial_auc = function(
 	if (is.null(nn)) {
 		nn_start_time = Sys.time()
 		message('Getting nearest neighbours based on spatial coordinates')
-		nn = get_nn(
+		nn = do.call(get_nn, c(list(
 			meta,
 			label_col = label_col,
 			barcode_col = barcode_col,
-			coord_cols = coord_cols,
-			...
-		)
+			coord_cols = coord_cols
+		), nn_args))
 		nn_end_time = Sys.time()
 		nn_time = difftime(nn_end_time, nn_start_time, units='mins')
 		message(paste0('Nearest neighbours obtained. Time taken: ', nn_time, ' minutes'))
@@ -140,8 +142,10 @@ calculate_spatial_auc = function(
 		distance_metrics_time = -1
 	}
 
+	print(dim(input))
 	message('Running Augur::select_variance')
-	input %<>% Augur::select_variance()
+	input = do.call(Augur::select_variance, c(list(input), select_var_args))
+	print(dim(input))
 
 	curr_barcode_size = barcodes_per_step
 	step_count = 1
@@ -190,12 +194,14 @@ calculate_spatial_auc = function(
 					meta0$cell_type = 'vespucci'
 
 					start_time = Sys.time()
-					augur_res = Augur::calculate_auc(input = input0,
-										  meta = meta0,
-										  n_subsamples = n_subsamples,
-										  var_quantile = 1,
-										  n_threads = ncores,
-										  show_progress = T)
+					augur_res = do.call(Augur::calculate_auc, modifyList(list(
+										input = input0,
+										meta = meta0,
+										n_subsamples = n_subsamples,
+										var_quantile = 1,
+										n_threads = ncores,
+										show_progress = T
+									), augur_args))
 					end_time = Sys.time()
 					time_taken = difftime(end_time, start_time, units='secs')
 					out_row = data.frame('barcode'=curr_barcode, 'auc' = as.numeric(augur_res$AUC$auc), 'time' = as.numeric(time_taken))
