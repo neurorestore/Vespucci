@@ -117,6 +117,7 @@ get_nn = function(
 #' @importFrom future multicore
 #'
 #' @export
+
 get_distance_metrics = function(
     input,
     meta,
@@ -125,75 +126,46 @@ get_distance_metrics = function(
     label_col = 'label',
     barcode_col = 'barcode',
     dismay_methods = c('pearson', 'spearman', 'binomial'),
-    select_var = T,
+    select_var = TRUE,
     ncores = 8
 ) {
-    output_df = data.frame()
-
     barcodes = colnames(input)
-
     summary_stats = c('mean', 'median', 'q1', 'q3', 'sd')
-
-    features = unlist(map(summary_stats, function(x) {
-        paste0(dismay_methods, '_', x)
-    }))
-    # do the variance selection on the entire matrix
-
-    if (select_var){
+    features = as.vector(outer(dismay_methods, summary_stats, paste, sep = '_'))
+    if (select_var)
         input %<>% Augur::select_variance()
-    }
-
-    plan(multicore,workers=ncores)
-    output_df = future_map_dfr(barcodes, function(barcode){
-        barcodes_keep = nn %>%
-            dplyr::filter(source_barcode == barcode) %>%
+    # keyed data.table — fast lookup without copying into list
+    nn_dt = data.table::as.data.table(nn)
+    data.table::setkey(nn_dt, source_barcode)
+    plan(multicore, workers = ncores)
+    output_df = future_map_dfr(barcodes, function(barcode) {
+        barcodes_keep = nn_dt[barcode] %>%
             group_by(target_label) %>%
             arrange(neighbor_idx) %>%
-            mutate(rank = seq_len(n())) %>%
-            filter(rank %in% seq_len(k)) %>%
+            slice_head(n = k) %>%
             pull(target_barcode)
-
-        input0 = input %>% extract(, barcodes_keep)
-        meta0 = meta %>% extract(barcodes_keep,) %>%
-            mutate(
-                label = paste0('label', as.integer(factor(label)))
-            )
-
-        # calculate distance metrics
-        dist_metrics = future_map_dfr(dismay_methods, ~ {
-            metric = .
-            # message(metric)
-            label1_idx = meta0$label == 'label1'
-            label2_idx = meta0$label == 'label2'
-            dist = dismay(as.matrix(input0), metric = metric)
+        input0 = as.matrix(input[, barcodes_keep])
+        label1_idx = meta[barcodes_keep, label_col] == unique(meta[[label_col]])[1]
+        label2_idx = !label1_idx
+        cell_metrics = vapply(dismay_methods, function(metric) {
+            dist = dismay(input0, metric = metric)
             dist = dist[label2_idx, label1_idx]
-            # define output vector
-            out = data.frame(
-                metric = metric,
+            c(
                 mean = mean(dist),
                 median = median(dist),
-                q1 = quantile(dist, 0.25),
-                q3 = quantile(dist, 0.75),
+                q1 = quantile(dist, 0.25, names = FALSE),
+                q3 = quantile(dist, 0.75, names = FALSE),
                 sd = sd(dist)
             )
-            out
-        }
-        )
-        # flatten dist metrics into vector
-        cell_metrics = dist_metrics %>%
-            select(-metric) %>%
-            flatten() %>%
-            unlist()
-        cell_metrics[is.nan(cell_metrics)] = 0
-        cell_metrics[is.infinite(cell_metrics)] = 0
-        cell_metrics = data.frame(t(cell_metrics))
-        colnames(cell_metrics) = features
-        cell_metrics
+        }, numeric(5))
+        cell_metrics[is.nan(cell_metrics) | is.infinite(cell_metrics)] = 0
+        out = as.data.frame(t(as.vector(t(cell_metrics))))
+        colnames(out) = features
+        out
     })
     output_df$barcode = barcodes
     return(output_df)
 }
-
 #' Get Gene Ontology (GO) level score matrix
 #'
 #' Get the GO score matrix from expression matrix

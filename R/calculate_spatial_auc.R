@@ -142,10 +142,8 @@ calculate_spatial_auc = function(
 		distance_metrics_time = -1
 	}
 
-	print(dim(input))
 	message('Running Augur::select_variance')
 	input = do.call(Augur::select_variance, c(list(input), select_var_args))
-	print(dim(input))
 
 	curr_barcode_size = barcodes_per_step
 	step_count = 1
